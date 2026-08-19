@@ -17,21 +17,8 @@ header{background:linear-gradient(135deg,#0d2137 0%,var(--bg) 60%);border-bottom
 .gw-chip strong{color:var(--accent)}
 .team-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .team-bar label{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.8px}
-.team-select{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;flex:1;min-width:180px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.team-select{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;flex:1;min-width:200px;font-family:'DM Sans',sans-serif;cursor:pointer}
 .team-select:focus{outline:none;border-color:var(--accent)}
-.add-team-btn{background:none;border:1px dashed var(--border);border-radius:8px;color:var(--muted);padding:8px 16px;font-size:12px;cursor:pointer;transition:.2s;font-family:'DM Sans',sans-serif;white-space:nowrap}
-.add-team-btn:hover{border-color:var(--accent);color:var(--accent)}
-.add-team-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center}
-.add-team-modal.show{display:flex}
-.add-team-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:400px;width:90%}
-.add-team-box h3{font-size:18px;margin-bottom:16px}
-.add-team-box p{font-size:12px;color:var(--muted);margin-bottom:14px}
-.add-team-input{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;font-family:'DM Mono',monospace;margin-bottom:14px}
-.add-team-input:focus{outline:none;border-color:var(--accent)}
-.add-team-actions{display:flex;gap:10px;justify-content:flex-end}
-.btn-primary{padding:9px 20px;border-radius:8px;border:none;background:var(--accent);color:#000;font-weight:600;cursor:pointer;font-size:13px}
-.btn-secondary{padding:9px 20px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;font-size:13px}
-.custom-team-tag{background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);color:var(--accent2);font-size:9px;padding:2px 6px;border-radius:4px;margin-left:6px;font-family:'DM Mono',monospace}
 nav{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;padding:0 24px;gap:2px;overflow-x:auto}
 .tab{padding:14px 20px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;transition:.2s;display:flex;align-items:center;gap:7px}
 .tab:hover{color:var(--text)}
@@ -110,25 +97,7 @@ footer a{color:var(--accent);text-decoration:none}
 </head>
 <body>
 <header><div class="logo"><em>Fantasy</em> Hub</div><div class="gw-chip" id="gwChip">Loading...</div></header>
-
-<div class="team-bar">
-<label>Select Team</label>
-<select class="team-select" id="teamSelect"><option value="">-- Select a team --</option></select>
-<button class="add-team-btn" id="addTeamBtn">+ Add Team</button>
-</div>
-
-<div class="add-team-modal" id="addTeamModal">
-<div class="add-team-box">
-<h3>Add a Team</h3>
-<p>Enter the FPL entry ID (find it in your FPL team page URL, e.g. fantasy.premierleague.com/entry/<strong>123456</strong>/)</p>
-<input type="number" class="add-team-input" id="addTeamInput" placeholder="e.g. 4037507" />
-<div class="add-team-actions">
-<button class="btn-secondary" id="cancelAddTeam">Cancel</button>
-<button class="btn-primary" id="confirmAddTeam">Add</button>
-</div>
-</div>
-</div>
-
+<div class="team-bar"><label>Select Team</label><select class="team-select" id="teamSelect"><option value="">-- Select a team --</option></select></div>
 <nav>
 <div class="tab active" data-tab="overview">⚽ Overview</div>
 <div class="tab" data-tab="transfers">🔄 Transfers</div>
@@ -136,7 +105,6 @@ footer a{color:var(--accent);text-decoration:none}
 <div class="tab" data-tab="fixtures">📅 Fixtures</div>
 <div class="tab" data-tab="league">🏆 League</div>
 </nav>
-
 <main>
 <div class="page active" id="page-overview">
 <div class="stats-row">
@@ -153,172 +121,25 @@ footer a{color:var(--accent);text-decoration:none}
 <div class="page" id="page-fixtures"><div class="card"><div class="card-head">📅 Upcoming Fixtures</div><div id="fixturesContainer"><div class="loading"><div class="spinner"></div><div>Loading fixtures...</div></div></div></div></div>
 <div class="page" id="page-league"><div class="card"><div class="card-head">🏆 ZPL League Standings</div><table class="league-tbl"><thead><tr><th>#</th><th>Team</th><th>Manager</th><th>Pts</th></tr></thead><tbody id="leagueBody"><tr><td colspan="4" class="loading">Loading standings...</td></tr></tbody></table></div></div>
 </main>
-
 <footer>Fantasy Hub · Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a> · Data from <a href="https://fantasy.premierleague.com/">Fantasy Premier League</a></footer>
-
 <script>
-const API_BASE='https://fantasy-hub.lianza-moses123.workers.dev/api';
+const API_BASE='https://fantasy-ai.lianza-moses123.workers.dev/api';
 const ZPL_LEAGUE_ID=45149;
 let bootstrap=null,currentPosFilter='ALL';
-let zplTeams=[],customTeams=[];
-
 async function fplFetch(e){const r=await fetch(API_BASE+e);if(!r.ok)throw new Error('FPL API error: '+r.status);return r.json()}
-
-async function init(){
-  try{
-    bootstrap=await fplFetch('/bootstrap-static/');
-    const gw=bootstrap.events?.find(e=>e.is_current)||bootstrap.events?.find(e=>e.is_next);
-    if(gw)document.getElementById('gwChip').innerHTML='<strong>GW'+gw.id+'</strong> '+(gw.is_current?'(Live)':gw.deadline_time?.substring(0,10)||'');
-    loadPlayers();loadFixtures();loadZPLTeams();
-  }catch(e){
-    console.error('Init error:',e);
-    document.getElementById('pitchContainer').innerHTML='<div class="empty-state"><h3>Connection Error</h3><p>Could not connect to FPL API.</p></div>';
-  }
-}
-
-function getCustomTeams(){return JSON.parse(localStorage.getItem('fantasyhub_custom_teams')||'[]')}
-function saveCustomTeams(t){localStorage.setItem('fantasyhub_custom_teams',JSON.stringify(t))}
-
-function populateDropdown(){
-  const sel=document.getElementById('teamSelect');
-  sel.innerHTML='<option value="">-- Select a team --</option>';
-  const cg=document.createElement('optgroup');cg.label='ZPL League Teams';
-  zplTeams.forEach(t=>{const o=document.createElement('option');o.value=t.id;o.textContent=t.name+' ('+t.manager+')';cg.appendChild(o)});
-  sel.appendChild(cg);
-  const ct=getCustomTeams();
-  if(ct.length>0){
-    const og=document.createElement('optgroup');og.label='Custom Teams';
-    ct.forEach(t=>{const o=document.createElement('option');o.value=t.id;o.textContent=t.name+' ('+t.manager+')';og.appendChild(o)});
-    sel.appendChild(og);
-  }
-  const saved=localStorage.getItem('fantasyhub_selected_team');
-  if(saved){sel.value=saved;if(sel.value)loadTeam(parseInt(saved))}
-}
-
-async function loadZPLTeams(){
-  try{
-    const data=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/');
-    const entries=data.standings?.results||[];
-    const newE=data.new_entries?.results||[];
-    if(entries.length>0){
-      zplTeams=entries.map(e=>({id:e.entry,name:e.entry_name,manager:e.player_first_name+' '+e.player_last_name,points:e.total_points||0,rank:e.rank||0}));
-      renderLeague(entries);
-    }else if(newE.length>0){
-      zplTeams=newE.map(e=>({id:e.entry,name:e.entry_name,manager:e.player_first_name+' '+e.player_last_name}));
-      renderLeagueNew(newE);
-    }
-    populateDropdown();
-  }catch(e){console.error('Failed:',e)}
-}
-
-async function loadTeam(id){
-  localStorage.setItem('fantasyhub_selected_team',id);
-  document.getElementById('pitchContainer').innerHTML='<div class="loading"><div class="spinner"></div><div>Loading squad...</div></div>';
-  document.getElementById('transfersContainer').innerHTML='<div class="loading"><div class="spinner"></div><div>Loading transfers...</div></div>';
-  try{
-    const entry=await fplFetch('/entry/'+id+'/');
-    document.getElementById('statPoints').textContent=entry.summary_overall_points||'—';
-    document.getElementById('statRank').textContent=entry.summary_overall_rank?'#'+entry.summary_overall_rank:'—';
-    document.getElementById('statGW').textContent=entry.summary_event_points||'0';
-    document.getElementById('statTV').textContent='£'+(entry.value?(entry.value/10).toFixed(1):'—')+'m';
-    const gw=bootstrap?.events?.find(e=>e.is_current)||bootstrap?.events?.find(e=>e.is_next);
-    const gwId=gw?gw.id:1;
-    try{const picks=await fplFetch('/entry/'+id+'/event/'+gwId+'/picks/');renderSquad(picks)}
-    catch(pe){document.getElementById('pitchContainer').innerHTML='<div class="empty-state"><h3>Squad not available yet</h3><p>Picks will be visible after GW'+gwId+' deadline.</p></div>'}
-    try{const tf=await fplFetch('/entry/'+id+'/transfers/');renderTransfers(tf)}
-    catch(te){document.getElementById('transfersContainer').innerHTML='<div class="empty-state"><h3>No transfers yet</h3></div>'}
-    try{const h=await fplFetch('/entry/'+id+'/history/');const c=h.current?.[h.current.length-1];if(c)document.getElementById('statTF').textContent=c.event_transfers||1}
-    catch(he){}
-  }catch(e){console.error('Load team error:',e);document.getElementById('pitchContainer').innerHTML='<div class="empty-state"><h3>Failed to load team</h3><p>'+e.message+'</p></div>'}
-}
-
-function renderSquad(picksData){
-  if(!picksData||!picksData.picks||!bootstrap){document.getElementById('pitchContainer').innerHTML='<div class="empty-state"><h3>No squad data</h3></div>';return}
-  const elements=bootstrap.elements||[],teams=bootstrap.teams||[],picks=picksData.picks;
-  const pm={};
-  picks.forEach(p=>{const el=elements.find(e=>e.id===p.element);if(el){const t=teams.find(t=>t.id===el.team);pm[p.element]={...el,ts:t?t.short_name:'',ic:p.is_captain,ivc:p.is_vice_captain,pos:p.position}}});
-  const gk=picks.filter(p=>p.position<=2).map(p=>pm[p.element]).filter(Boolean);
-  const def=picks.filter(p=>p.position>=3&&p.position<=7).map(p=>pm[p.element]).filter(Boolean);
-  const mid=picks.filter(p=>p.position>=8&&p.position<=11).map(p=>pm[p.element]).filter(Boolean);
-  const fwd=picks.filter(p=>p.position>=12).map(p=>pm[p.element]).filter(Boolean);
-  const bench=[gk[1],...def.slice(5),...mid.slice(5)].filter(Boolean);
-  function pc(p){if(!p)return'';const pc1=p.element_type===1?'GKP':p.element_type===2?'DEF':p.element_type===3?'MID':'FWD';const cc=p.ic?'cap':p.ivc?'vc':'';const cb=p.ic?'<span class="pc-badge bc">C</span>':p.ivc?'<span class="pc-badge bv">VC</span>':'';return'<div class="pc '+cc+'">'+cb+'<div class="pc-pos">'+pc1+'</div><div class="pc-name">'+(p.web_name||p.second_name)+'</div><div class="pc-team">'+p.ts+'</div><div class="pc-pts">'+(p.total_points||0)+'<span> pts</span></div></div>'}
-  let h='<div class="pitch">';
-  h+='<div class="pitch-row">'+(gk[0]?pc(gk[0]):'')+'</div>';
-  h+='<div class="pitch-row">'+def.slice(0,5).map(pc).join('')+'</div>';
-  h+='<div class="pitch-row">'+mid.slice(0,5).map(pc).join('')+'</div>';
-  h+='<div class="pitch-row">'+fwd.slice(0,3).map(pc).join('')+'</div>';
-  h+='<div class="bench-sep">Bench</div>';
-  h+='<div class="pitch-row bench-row">'+bench.map(pc).join('')+'</div>';
-  h+='</div>';
-  document.getElementById('pitchContainer').innerHTML=h;
-}
-
-function renderTransfers(tf){
-  if(!tf||tf.length===0){document.getElementById('transfersContainer').innerHTML='<div class="empty-state"><h3>No transfers yet</h3></div>';return}
-  if(!bootstrap)return;
-  const el=bootstrap.elements||[],r=tf.slice(-10).reverse();
-  let o='<div class="xfer-grid"><div><div class="xfer-head">Out</div>',i='<div><div class="xfer-head">In</div>';
-  r.forEach(t=>{const oe=el.find(e=>e.id===t.element_out),ie=el.find(e=>e.id===t.element_in);if(oe)o+='<div class="xfer-card out"><div class="xfer-info"><div class="xfer-name">'+oe.web_name+'</div><div class="xfer-sub">GW'+t.event+' £'+(t.element_out_cost/10).toFixed(1)+'m</div></div></div>';if(ie)i+='<div class="xfer-card in"><div class="xfer-info"><div class="xfer-name">'+ie.web_name+'</div><div class="xfer-sub">GW'+t.event+' £'+(t.element_in_cost/10).toFixed(1)+'m</div></div></div>'});
-  document.getElementById('transfersContainer').innerHTML=o+'</div>'+i+'</div></div>';
-}
-
-async function loadPlayers(){
-  if(!bootstrap)return;
-  const el=bootstrap.elements||[],t=bootstrap.teams||[];
-  const s=[...el].sort((a,b)=>(b.total_points||0)-(a.total_points||0)).slice(0,50);
-  window.allPlayers=s.map(p=>{const tm=t.find(t=>t.id===p.team);return{name:p.web_name||p.second_name,team:tm?tm.short_name:'',pos:p.element_type===1?'GKP':p.element_type===2?'DEF':p.element_type===3?'MID':'FWD',price:p.now_cost/10,points:p.total_points||0,form:parseFloat(p.form)||0}});
-  renderPlayers();
-}
-
-function renderPlayers(){
-  const f=currentPosFilter==='ALL'?window.allPlayers:window.allPlayers.filter(p=>p.pos===currentPosFilter);
-  const m=Math.max(...f.map(p=>p.points),1);
-  document.getElementById('playersBody').innerHTML=f.map(p=>{const pc=p.pos,pl=p.points>100?'pill-hi':p.points>50?'pill-mid':'pill-lo',bw=(p.points/m*100).toFixed(0);return'<tr><td><span class="pos '+pc+'">'+pc.replace('P','')+'</span> '+p.name+'</td><td style="font-family:DM Mono,monospace;font-size:12px;color:var(--muted)">'+p.team+'</td><td style="font-family:DM Mono,monospace">£'+p.price.toFixed(1)+'</td><td><span class="prow-pts '+pl+'">'+p.points+'</span></td><td><div style="font-family:DM Mono,monospace;font-size:12px">'+p.form.toFixed(1)+'</div><div class="bar-wrap"><div class="bar-fill" style="width:'+bw+'%"></div></div></td></tr>'}).join('');
-}
-
-async function loadFixtures(){
-  if(!bootstrap)return;
-  const gw=bootstrap.events?.find(e=>e.is_current)||bootstrap.events?.find(e=>e.is_next);
-  if(!gw)return;
-  try{
-    const live=await fplFetch('/event/'+gw.id+'/live/');
-    const fx=live.fixtures||[];
-    if(fx.length===0){document.getElementById('fixturesContainer').innerHTML='<div class="empty-state"><h3>No fixtures</h3><p>GW'+gw.id+' fixtures will appear here.</p></div>';return}
-    const t=bootstrap.teams||[];
-    document.getElementById('fixturesContainer').innerHTML=fx.map(f=>{const h=t.find(t=>t.id===f.team_h),a=t.find(t=>t.id===f.team_a);const sc=f.started?(f.team_h_score||0)+' - '+(f.team_a_score||0):'vs';const tm=f.kickoff_time?new Date(f.kickoff_time).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'TBD';return'<div class="fix-card"><div class="fix-team"><div class="fix-tname">'+(h?h.name:'TBD')+'</div><div class="fix-short">'+(h?h.short_name:'')+'</div></div><div class="fix-mid"><div class="fix-score">'+sc+'</div><div class="fix-time">'+tm+'</div></div><div class="fix-team"><div class="fix-tname">'+(a?a.name:'TBD')+'</div><div class="fix-short">'+(a?a.short_name:'')+'</div></div></div>'}).join('');
-  }catch(e){document.getElementById('fixturesContainer').innerHTML='<div class="empty-state"><h3>Fixtures unavailable</h3><p>Will appear when GW'+gw.id+' fixtures are released.</p></div>'}
-}
-
+async function init(){try{bootstrap=await fplFetch('/bootstrap-static/');const gw=bootstrap.events?.find(e=>e.is_current)||bootstrap.events?.find(e=>e.is_next);if(gw)document.getElementById('gwChip').innerHTML='<strong>GW'+gw.id+'</strong> '+(gw.is_current?'(Live)':gw.deadline_time?.substring(0,10)||'');loadPlayers();loadFixtures();loadZPLTeams()}catch(e){console.error('Init error:',e);document.getElementById('pitchContainer').innerHTML='<div class="empty-state"><h3>Connection Error</h3><p>Could not connect to FPL API.</p></div>'}}
+async function loadZPLTeams(){try{const data=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/');const entries=data.standings?.results||[];const newE=data.new_entries?.results||[];const sel=document.getElementById('teamSelect');sel.innerHTML='<option value="">-- Select a team --</option>';if(entries.length>0){entries.forEach(e=>{const o=document.createElement('option');o.value=e.entry;o.textContent=e.entry_name+' ('+e.player_first_name+' '+e.player_last_name+')';sel.appendChild(o)});renderLeague(entries)}else if(newE.length>0){newE.forEach(e=>{const o=document.createElement('option');o.value=e.entry;o.textContent=e.entry_name+' ('+e.player_first_name+' '+e.player_last_name+')';sel.appendChild(o)});renderLeagueNew(newE)}const saved=localStorage.getItem('fantasyhub_selected_team');if(saved){sel.value=saved;if(sel.value)loadTeam(parseInt(saved))}}catch(e){console.error('Failed:',e)}}
+async function loadTeam(id){localStorage.setItem('fantasyhub_selected_team',id);document.getElementById('pitchContainer').innerHTML='<div class="loading"><div class="spinner"></div><div>Loading squad...</div></div>';try{const entry=await fplFetch('/entry/'+id+'/');document.getElementById('statPoints').textContent=entry.summary_overall_points||'—';document.getElementById('statRank').textContent=entry.summary_overall_rank?'#'+entry.summary_overall_rank:'—';document.getElementById('statGW').textContent=entry.summary_event_points||'0';document.getElementById('statTV').textContent='£'+(entry.value?(entry.value/10).toFixed(1):'—')+'m';const gw=bootstrap?.events?.find(e=>e.is_current)||bootstrap?.events?.find(e=>e.is_next);const gwId=gw?gw.id:1;try{const picks=await fplFetch('/entry/'+id+'/event/'+gwId+'/picks/');renderSquad(picks)}catch(pe){document.getElementById('pitchContainer').innerHTML='<div class="empty-state"><h3>Squad not available yet</h3><p>Picks will be visible after GW'+gwId+' deadline.</p></div>'}try{const tf=await fplFetch('/entry/'+id+'/transfers/');renderTransfers(tf)}catch(te){document.getElementById('transfersContainer').innerHTML='<div class="empty-state"><h3>No transfers yet</h3></div>'}try{const h=await fplFetch('/entry/'+id+'/history/');const c=h.current?.[h.current.length-1];if(c)document.getElementById('statTF').textContent=c.event_transfers||1}catch(he){}}catch(e){console.error('Load team error:',e);document.getElementById('pitchContainer').innerHTML='<div class="empty-state"><h3>Failed to load team</h3><p>'+e.message+'</p></div>'}}
+function renderSquad(picksData){if(!picksData||!picksData.picks||!bootstrap){document.getElementById('pitchContainer').innerHTML='<div class="empty-state"><h3>No squad data</h3></div>';return}const elements=bootstrap.elements||[],teams=bootstrap.teams||[],picks=picksData.picks;const pm={};picks.forEach(p=>{const el=elements.find(e=>e.id===p.element);if(el){const t=teams.find(t=>t.id===el.team);pm[p.element]={...el,ts:t?t.short_name:'',ic:p.is_captain,ivc:p.is_vice_captain,pos:p.position}}});const gk=picks.filter(p=>p.position<=2).map(p=>pm[p.element]).filter(Boolean);const def=picks.filter(p=>p.position>=3&&p.position<=7).map(p=>pm[p.element]).filter(Boolean);const mid=picks.filter(p=>p.position>=8&&p.position<=11).map(p=>pm[p.element]).filter(Boolean);const fwd=picks.filter(p=>p.position>=12).map(p=>pm[p.element]).filter(Boolean);const bench=[gk[1],...def.slice(5),...mid.slice(5)].filter(Boolean);function pc(p){if(!p)return'';const pc1=p.element_type===1?'GKP':p.element_type===2?'DEF':p.element_type===3?'MID':'FWD';const cc=p.ic?'cap':p.ivc?'vc':'';const cb=p.ic?'<span class="pc-badge bc">C</span>':p.ivc?'<span class="pc-badge bv">VC</span>':'';return'<div class="pc '+cc+'">'+cb+'<div class="pc-pos">'+pc1+'</div><div class="pc-name">'+(p.web_name||p.second_name)+'</div><div class="pc-team">'+p.ts+'</div><div class="pc-pts">'+(p.total_points||0)+'<span> pts</span></div></div>'}let h='<div class="pitch">';h+='<div class="pitch-row">'+(gk[0]?pc(gk[0]):'')+'</div>';h+='<div class="pitch-row">'+def.slice(0,5).map(pc).join('')+'</div>';h+='<div class="pitch-row">'+mid.slice(0,5).map(pc).join('')+'</div>';h+='<div class="pitch-row">'+fwd.slice(0,3).map(pc).join('')+'</div>';h+='<div class="bench-sep">Bench</div>';h+='<div class="pitch-row bench-row">'+bench.map(pc).join('')+'</div>';h+='</div>';document.getElementById('pitchContainer').innerHTML=h}
+function renderTransfers(tf){if(!tf||tf.length===0){document.getElementById('transfersContainer').innerHTML='<div class="empty-state"><h3>No transfers yet</h3></div>';return}if(!bootstrap)return;const el=bootstrap.elements||[],r=tf.slice(-10).reverse();let o='<div class="xfer-grid"><div><div class="xfer-head">Out</div>',i='<div><div class="xfer-head">In</div>';r.forEach(t=>{const oe=el.find(e=>e.id===t.element_out),ie=el.find(e=>e.id===t.element_in);if(oe)o+='<div class="xfer-card out"><div class="xfer-info"><div class="xfer-name">'+oe.web_name+'</div><div class="xfer-sub">GW'+t.event+' £'+(t.element_out_cost/10).toFixed(1)+'m</div></div></div>';if(ie)i+='<div class="xfer-card in"><div class="xfer-info"><div class="xfer-name">'+ie.web_name+'</div><div class="xfer-sub">GW'+t.event+' £'+(t.element_in_cost/10).toFixed(1)+'m</div></div></div>'});document.getElementById('transfersContainer').innerHTML=o+'</div>'+i+'</div></div>'}
+async function loadPlayers(){if(!bootstrap)return;const el=bootstrap.elements||[],t=bootstrap.teams||[];const s=[...el].sort((a,b)=>(b.total_points||0)-(a.total_points||0)).slice(0,50);window.allPlayers=s.map(p=>{const tm=t.find(t=>t.id===p.team);return{name:p.web_name||p.second_name,team:tm?tm.short_name:'',pos:p.element_type===1?'GKP':p.element_type===2?'DEF':p.element_type===3?'MID':'FWD',price:p.now_cost/10,points:p.total_points||0,form:parseFloat(p.form)||0}});renderPlayers()}
+function renderPlayers(){const f=currentPosFilter==='ALL'?window.allPlayers:window.allPlayers.filter(p=>p.pos===currentPosFilter);const m=Math.max(...f.map(p=>p.points),1);document.getElementById('playersBody').innerHTML=f.map(p=>{const pc=p.pos,pl=p.points>100?'pill-hi':p.points>50?'pill-mid':'pill-lo',bw=(p.points/m*100).toFixed(0);return'<tr><td><span class="pos '+pc+'">'+pc.replace('P','')+'</span> '+p.name+'</td><td style="font-family:DM Mono,monospace;font-size:12px;color:var(--muted)">'+p.team+'</td><td style="font-family:DM Mono,monospace">£'+p.price.toFixed(1)+'</td><td><span class="prow-pts '+pl+'">'+p.points+'</span></td><td><div style="font-family:DM Mono,monospace;font-size:12px">'+p.form.toFixed(1)+'</div><div class="bar-wrap"><div class="bar-fill" style="width:'+bw+'%"></div></div></td></tr>'}).join('')}
+async function loadFixtures(){if(!bootstrap)return;const gw=bootstrap.events?.find(e=>e.is_current)||bootstrap.events?.find(e=>e.is_next);if(!gw)return;try{const live=await fplFetch('/event/'+gw.id+'/live/');const fx=live.fixtures||[];if(fx.length===0){document.getElementById('fixturesContainer').innerHTML='<div class="empty-state"><h3>No fixtures</h3><p>GW'+gw.id+' fixtures will appear here.</p></div>';return}const t=bootstrap.teams||[];document.getElementById('fixturesContainer').innerHTML=fx.map(f=>{const h=t.find(t=>t.id===f.team_h),a=t.find(t=>t.id===f.team_a);const sc=f.started?(f.team_h_score||0)+' - '+(f.team_a_score||0):'vs';const tm=f.kickoff_time?new Date(f.kickoff_time).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'TBD';return'<div class="fix-card"><div class="fix-team"><div class="fix-tname">'+(h?h.name:'TBD')+'</div><div class="fix-short">'+(h?h.short_name:'')+'</div></div><div class="fix-mid"><div class="fix-score">'+sc+'</div><div class="fix-time">'+tm+'</div></div><div class="fix-team"><div class="fix-tname">'+(a?a.name:'TBD')+'</div><div class="fix-short">'+(a?a.short_name:'')+'</div></div></div>'}).join('')}catch(e){document.getElementById('fixturesContainer').innerHTML='<div class="empty-state"><h3>Fixtures unavailable</h3><p>Will appear when GW'+gw.id+' fixtures are released.</p></div>'}}
 function renderLeague(e){document.getElementById('leagueBody').innerHTML=e.map((e,i)=>{const rc=i<3?'league-rank top':'league-rank';return'<tr><td class="'+rc+'">'+(e.rank||i+1)+'</td><td class="league-name">'+e.entry_name+'</td><td class="league-mgr">'+e.player_first_name+' '+e.player_last_name+'</td><td class="league-pts">'+(e.total_points||0)+'</td></tr>'}).join('')}
 function renderLeagueNew(t){document.getElementById('leagueBody').innerHTML=t.map((t,i)=>'<tr><td class="league-rank">'+(i+1)+'</td><td class="league-name">'+t.entry_name+'</td><td class="league-mgr">'+t.player_first_name+' '+t.player_last_name+'</td><td class="league-pts">—</td></tr>').join('')}
-
-// Add Team modal
-document.getElementById('addTeamBtn').addEventListener('click',()=>{document.getElementById('addTeamModal').classList.add('show');document.getElementById('addTeamInput').focus()});
-document.getElementById('cancelAddTeam').addEventListener('click',()=>{document.getElementById('addTeamModal').classList.remove('show');document.getElementById('addTeamInput').value=''});
-document.getElementById('addTeamModal').addEventListener('click',(e)=>{if(e.target.id==='addTeamModal')document.getElementById('addTeamModal').classList.remove('show')});
-document.getElementById('confirmAddTeam').addEventListener('click',async()=>{
-  const id=parseInt(document.getElementById('addTeamInput').value);
-  if(!id){alert('Please enter a valid entry ID');return}
-  try{
-    const entry=await fplFetch('/entry/'+id+'/');
-    const ct=getCustomTeams();
-    if(ct.find(t=>t.id===id)){alert('Team already added');return}
-    ct.push({id:id,name:entry.name||'Team '+id,manager:(entry.player_first_name||'')+' '+(entry.player_last_name||'')});
-    saveCustomTeams(ct);
-    populateDropdown();
-    document.getElementById('teamSelect').value=id;
-    loadTeam(id);
-    document.getElementById('addTeamModal').classList.remove('show');
-    document.getElementById('addTeamInput').value='';
-  }catch(e){alert('Could not find team with ID '+id+'. Make sure the ID is correct.')}
-});
-document.getElementById('addTeamInput').addEventListener('keypress',(e)=>{if(e.key==='Enter')document.getElementById('confirmAddTeam').click()});
-
 document.querySelectorAll('.tab').forEach(tab=>{tab.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));tab.classList.add('active');document.getElementById('page-'+tab.dataset.tab).classList.add('active')})});
 document.getElementById('teamSelect').addEventListener('change',function(){if(this.value)loadTeam(parseInt(this.value))});
 document.querySelectorAll('.pos-filter button').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.pos-filter button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');currentPosFilter=btn.dataset.pos;renderPlayers()})});
-
 init();
 </script>
 </body>
