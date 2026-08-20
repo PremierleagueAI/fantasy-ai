@@ -183,33 +183,32 @@ loadPlayers();loadFixtures();loadPredictions();loadZPLTeams();
 
 async function loadZPLTeams(){
 try{
-// Fetch all pages of league standings
-let allEntries=[];
-let allNewEntries=[];
-let page=1;
-let hasMore=true;
+// Fetch page 1 first
+const data=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/');
+let allEntries=data.standings?.results||[];
+let allNewEntries=data.new_entries?.results||[];
 
-// First, try standings (populated after season starts)
-while(hasMore){
-const data=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/?page_standings='+page);
-const entries=data.standings?.results||[];
-allEntries=allEntries.concat(entries);
-hasMore=data.standings?.has_next||false;
+// Fetch remaining pages for standings (if season started)
+let page=2;
+while(data.standings?.has_next&&page<=10){
+try{
+const pageData=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/?page='+page);
+allEntries=allEntries.concat(pageData.standings?.results||[]);
+data.standings.has_next=pageData.standings?.has_next||false;
 page++;
-if(page>10)break;// safety limit
+}catch(e){break;}
 }
 
-// If no standings yet, fetch new_entries (all joined teams)
+// Fetch remaining pages for new entries (if season not started)
 if(allEntries.length===0){
-page=1;
-hasMore=true;
-while(hasMore){
-const data=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/?page_new_entries='+page);
-const entries=data.new_entries?.results||[];
-allNewEntries=allNewEntries.concat(entries);
-hasMore=data.new_entries?.has_next||false;
+page=2;
+while(data.new_entries?.has_next&&page<=10){
+try{
+const pageData=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/?page='+page);
+allNewEntries=allNewEntries.concat(pageData.new_entries?.results||[]);
+data.new_entries.has_next=pageData.new_entries?.has_next||false;
 page++;
-if(page>10)break;
+}catch(e){break;}
 }
 }
 
@@ -230,8 +229,11 @@ customTeams.forEach(t=>{const o=document.createElement('option');o.value=t.id;o.
 const saved=localStorage.getItem('fantasyhub_selected_team');
 if(saved){select.value=saved;if(select.value)loadTeam(parseInt(saved));}
 
-console.log('[ZPL] Loaded '+ (allEntries.length||allNewEntries.length) +' teams');
-}catch(e){console.error('Failed to load ZPL teams:',e);}
+console.log('[ZPL] Loaded '+(allEntries.length||allNewEntries.length)+' teams');
+}catch(e){
+console.error('Failed to load ZPL teams:',e);
+document.getElementById('leagueBody').innerHTML='<tr><td colspan="4" style="color:var(--red)">Error loading teams: '+e.message+'</td></tr>';
+}
 }
 
 function addCustomTeam(){
