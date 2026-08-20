@@ -191,8 +191,9 @@ const data=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/');
 let allEntries=data.standings?.results||[];
 let allNewEntries=data.new_entries?.results||[];
 let page=2;
-while(data.standings?.has_next&&page<=10){try{const pd=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/?page='+page);allEntries=allEntries.concat(pd.standings?.results||[]);data.standings.has_next=pd.standings?.has_next||false;page++;}catch(e){break;}}
-if(allEntries.length===0){page=2;while(data.new_entries?.has_next&&page<=10){try{const pd=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/?page='+page);allNewEntries=allNewEntries.concat(pd.new_entries?.results||[]);data.new_entries.has_next=pd.new_entries?.has_next||false;page++;}catch(e){break;}}}
+let seenIds=new Set(allEntries.map(e=>e.entry));
+while(data.standings?.has_next&&page<=10){try{const pd=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/?page='+page);const newResults=pd.standings?.results||[];const unique=newResults.filter(e=>!seenIds.has(e.entry));unique.forEach(e=>seenIds.add(e.entry));allEntries=allEntries.concat(unique);data.standings.has_next=pd.standings?.has_next||false;page++;}catch(e){break;}}
+if(allEntries.length===0){page=2;seenIds=new Set(allNewEntries.map(e=>e.entry));while(data.new_entries?.has_next&&page<=10){try{const pd=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/?page='+page);const newResults=pd.new_entries?.results||[];const unique=newResults.filter(e=>!seenIds.has(e.entry));unique.forEach(e=>seenIds.add(e.entry));allNewEntries=allNewEntries.concat(unique);data.new_entries.has_next=pd.new_entries?.has_next||false;page++;}catch(e){break;}}}
 customTeams=JSON.parse(localStorage.getItem('fantasyhub_custom_teams')||'[]');
 const select=document.getElementById('teamSelect');
 select.innerHTML='<option value="">-- Select a team --</option>';
@@ -285,7 +286,6 @@ h+='</div>';
 if(injured.length===0&&doubtful.length===0){h='<div class="empty-state"><h3>✅ All Clear</h3><p>No injuries or doubts reported across the Premier League.</p></div>';}
 document.getElementById('injuryContainer').innerHTML=h;
 }
-
 function renderInjuries(picksData){
 if(!picksData||!picksData.picks||!bootstrap){loadAllInjuries();return;}
 const elements=bootstrap.elements||[],picks=picksData.picks;
@@ -302,7 +302,20 @@ document.getElementById('injuryContainer').innerHTML=h;
 }
 
 function generateTransferRecs(picksData){
-if(!picksData||!picksData.picks||!bootstrap){document.getElementById('xferRecContainer').innerHTML='<div class="empty-state"><h3>No data</h3></div>';return;}
+if(!picksData||!picksData.picks||!bootstrap){
+if(!bootstrap){document.getElementById('xferRecContainer').innerHTML='<div class="empty-state"><h3>No data</h3></div>';return;}
+const elements=bootstrap.elements||[],teams=bootstrap.teams||[];
+const topByPos={1:[],2:[],3:[],4:[]};
+elements.forEach(p=>{if(p.element_type>=1&&p.element_type<=4){topByPos[p.element_type].push(p);}});
+Object.keys(topByPos).forEach(k=>{topByPos[k].sort((a,b)=>(b.total_points||0)-(a.total_points||0));topByPos[k]=topByPos[k].slice(0,3);});
+const posNames={1:'GK',2:'DEF',3:'MID',4:'FWD'};
+let h='<div style="margin-bottom:14px;padding:12px;background:var(--bg3);border-radius:8px;font-size:12px;color:var(--accent2)">💡 Season hasn\'t started yet. Here are the top players to consider for your squad:</div>';
+h+='<div class="xfer-grid"><div><div class="xfer-head">⬅ Top Picks</div>';
+[1,2,3,4].forEach(pt=>{topByPos[pt].forEach((p,i)=>{const team=teams.find(t=>t.id===p.team);h+='<div class="xfer-card in"><div class="xfer-info"><div class="xfer-name">'+p.web_name+'</div><div class="xfer-sub">'+(team?team.short_name:'')+' • '+posNames[pt]+' • £'+(p.now_cost/10).toFixed(1)+'m</div><div class="xfer-why">'+(p.total_points||0)+' pts • '+p.selected_by_percent+'% selected</div></div></div>';});});
+h+='</div></div>';
+document.getElementById('xferRecContainer').innerHTML=h;
+return;
+}
 const elements=bootstrap.elements||[],teams=bootstrap.teams||[],picks=picksData.picks;
 const myPlayers=picks.map(p=>{const el=elements.find(e=>e.id===p.element);return el?{...el,is_starter:p.position<=11}:null;}).filter(Boolean);
 const myIds=new Set(myPlayers.map(p=>p.id));
@@ -350,12 +363,11 @@ if(!bootstrap)return;
 const gw=bootstrap.events?.find(e=>e.is_current)||bootstrap.events?.find(e=>e.is_next);
 if(!gw){document.getElementById('fixturesContainer').innerHTML='<div class="empty-state"><h3>No fixtures</h3></div>';return;}
 try{
-const live=await fplFetch('/event/'+gw.id+'/live/');
-const fixtures=live.fixtures||[];
-if(fixtures.length===0){document.getElementById('fixturesContainer').innerHTML='<div class="empty-state"><h3>No fixtures for GW'+gw.id+'</h3><p>Fixtures will appear when released.</p></div>';return;}
+const fixtures=await fplFetch('/fixtures/?event='+gw.id);
+if(!fixtures||fixtures.length===0){document.getElementById('fixturesContainer').innerHTML='<div class="empty-state"><h3>No fixtures for GW'+gw.id+'</h3><p>Fixtures will appear when released.</p></div>';return;}
 const teams=bootstrap.teams||[];
 document.getElementById('fixturesContainer').innerHTML=fixtures.map(f=>{const home=teams.find(t=>t.id===f.team_h),away=teams.find(t=>t.id===f.team_a),score=f.started?(f.team_h_score||0)+' - '+(f.team_a_score||0):'vs',time=f.kickoff_time?new Date(f.kickoff_time).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'TBD';return'<div class="fix-card"><div class="fix-team"><div class="fix-tname">'+(home?home.name:'TBD')+'</div><div class="fix-short">'+(home?home.short_name:'')+'</div></div><div class="fix-mid"><div class="fix-score">'+score+'</div><div class="fix-time">'+time+'</div></div><div class="fix-team"><div class="fix-tname">'+(away?away.name:'TBD')+'</div><div class="fix-short">'+(away?away.short_name:'')+'</div></div></div>';}).join('');
-}catch(e){document.getElementById('fixturesContainer').innerHTML='<div class="empty-state"><h3>Fixtures unavailable</h3></div>';}
+}catch(e){document.getElementById('fixturesContainer').innerHTML='<div class="empty-state"><h3>Fixtures unavailable</h3><p>'+e.message+'</p></div>';}
 }
 
 async function loadPredictions(){
@@ -363,25 +375,24 @@ if(!bootstrap)return;
 const gw=bootstrap.events?.find(e=>e.is_current)||bootstrap.events?.find(e=>e.is_next);
 if(!gw){document.getElementById('predictionsContainer').innerHTML='<div class="empty-state"><h3>No predictions</h3></div>';return;}
 try{
-const live=await fplFetch('/event/'+gw.id+'/live/');
-const fixtures=live.fixtures||[];
+const fixtures=await fplFetch('/fixtures/?event='+gw.id);
+if(!fixtures||fixtures.length===0){document.getElementById('predictionsContainer').innerHTML='<div class="empty-state"><h3>No fixtures for GW'+gw.id+'</h3><p>Predictions will appear when fixtures are released.</p></div>';return;}
 const teams=bootstrap.teams||[];
 const elements=bootstrap.elements||[];
-if(fixtures.length===0){document.getElementById('predictionsContainer').innerHTML='<div class="empty-state"><h3>No fixtures for GW'+gw.id+'</h3><p>Predictions will appear when fixtures are released.</p></div>';return;}
 let h='';
 fixtures.forEach(f=>{
 const home=teams.find(t=>t.id===f.team_h),away=teams.find(t=>t.id===f.team_a);
 const homeStr=elements.filter(e=>e.team===f.team_h).reduce((s,p)=>s+(p.total_points||0),0);
 const awayStr=elements.filter(e=>e.team===f.team_a).reduce((s,p)=>s+(p.total_points||0),0);
 const total=homeStr+awayStr||1;
-const hPct=Math.round(homeStr/total*100),aPct=Math.round(awayStr/total*100),dPct=100-hPct-aPct;
+const hPct=Math.round(homeStr/total*100),aPct=Math.round(awayStr/total*100),dPct=Math.max(0,100-hPct-aPct);
 const hWin=hPct>aPct&&hPct>dPct,aWin=aPct>hPct&&aPct>dPct;
 let predScore=hWin?'2-1':aWin?'1-2':dPct>40?'1-1':hPct>aPct?'2-1':'1-2';
 const time=f.kickoff_time?new Date(f.kickoff_time).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'TBD';
 h+='<div class="fix-card"><div class="fix-team"><div class="fix-tname">'+(home?home.name:'TBD')+'</div><div class="fix-short">'+(home?home.short_name:'')+'</div></div><div class="fix-mid"><div class="fix-score">'+predScore+'</div><div class="fix-time">'+time+'</div><div class="fix-probs"><div class="prob ph">'+hPct+'% H</div><div class="prob pd">'+dPct+'% D</div><div class="prob pa">'+aPct+'% A</div></div></div><div class="fix-team"><div class="fix-tname">'+(away?away.name:'TBD')+'</div><div class="fix-short">'+(away?away.short_name:'')+'</div></div></div>';
 });
 document.getElementById('predictionsContainer').innerHTML=h;
-}catch(e){document.getElementById('predictionsContainer').innerHTML='<div class="empty-state"><h3>Predictions unavailable</h3><p>Will appear when GW'+gw.id+' fixtures are released.</p></div>';}
+}catch(e){document.getElementById('predictionsContainer').innerHTML='<div class="empty-state"><h3>Predictions unavailable</h3><p>'+e.message+'</p></div>';}
 }
 
 function renderLeague(entries){document.getElementById('leagueBody').innerHTML=entries.map((e,i)=>'<tr><td class="'+(i<3?'league-rank top':'league-rank')+'">'+(e.rank||i+1)+'</td><td class="league-name">'+e.entry_name+'</td><td class="league-mgr">'+e.player_first_name+' '+e.player_last_name+'</td><td class="league-pts">'+(e.total_points||0)+'</td></tr>').join('');}
