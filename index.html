@@ -407,7 +407,21 @@ function renderLeagueNew(t){document.getElementById('leagueBody').innerHTML=t.ma
 document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));tab.classList.add('active');document.getElementById('page-'+tab.dataset.tab).classList.add('active');}));
 document.getElementById('teamSelect').addEventListener('change',function(){if(this.value)loadTeam(parseInt(this.value));});
 document.querySelectorAll('.pos-filter button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.pos-filter button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');currentPosFilter=btn.dataset.pos;renderPlayers();}));
-init();
+// Auto-refresh predictions and fixtures every 60 seconds
+setInterval(async function(){
+if(bootstrap){
+const gw=bootstrap.events?.find(e=>e.is_current)||bootstrap.events?.find(e=>e.is_next);
+if(gw&&gw.is_current){
+console.log('[Auto-refresh] Updating predictions and fixtures...');
+loadPredictions();
+loadFixtures();
+if(currentTeamId){
+loadTeam(currentTeamId);
+}
+}
+}
+},60000);
+  init();
 </script>
 </body>
 </html>
