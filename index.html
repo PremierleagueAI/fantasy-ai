@@ -122,6 +122,7 @@ main{padding:24px;max-width:1200px;margin:0 auto}
 .empty-state p{font-size:13px}
 footer{text-align:center;padding:40px 20px;color:var(--muted);font-size:12px;border-top:1px solid var(--border);margin-top:40px}
 footer a{color:var(--accent);text-decoration:none}
+.refresh-note{text-align:center;font-size:11px;color:var(--muted);padding:8px;font-family:'DM Mono',monospace}
 @media(max-width:680px){header{padding:0 16px}.team-bar{padding:10px 16px}nav{padding:0 16px}main{padding:16px}.stats-row{gap:8px}.stat-box{min-width:90px;padding:10px 12px}.stat-box .val{font-size:18px}.pc{width:68px;padding:7px 5px}.pc-name{font-size:10px}.pc-pts{font-size:12px}.fix-card{grid-template-columns:1fr;text-align:center}.fix-team{padding:8px 0}}
 </style>
 </head>
@@ -157,16 +158,19 @@ footer a{color:var(--accent);text-decoration:none}
 <div class="stats-row"><div class="stat-box"><div class="val" id="statPoints">—</div><div class="lbl">Total Points</div></div><div class="stat-box"><div class="val" id="statRank">—</div><div class="lbl">Overall Rank</div></div><div class="stat-box"><div class="val" id="statGW">—</div><div class="lbl">GW Points</div></div><div class="stat-box"><div class="val" id="statTV">—</div><div class="lbl">Team Value</div></div><div class="stat-box"><div class="val" id="statTF">—</div><div class="lbl">Free Transfers</div></div></div>
 <div class="card"><div class="card-head">⚽ Your Squad</div><div id="pitchContainer"><div class="empty-state"><h3>No team selected</h3><p>Select a team from the dropdown above to view the squad.</p></div></div></div>
 </div>
-<div class="page" id="page-transfers"><div class="card"><div class="card-head">🔄 Transfer Recommendations</div><div id="xferRecContainer"><div class="empty-state"><h3>No team selected</h3><p>Select a team to get AI transfer recommendations.</p></div></div></div><div class="card"><div class="card-head">📋 Recent Transfers</div><div id="transfersContainer"><div class="empty-state"><h3>No team selected</h3></div></div></div></div>
-<div class="page" id="page-injuries"><div class="card"><div class="card-head">🚑 Team Injury & Status Report</div><div id="injuryContainer"><div class="empty-state"><h3>No team selected</h3><p>Select a team to view player injury status.</p></div></div></div></div>
+<div class="page" id="page-transfers">
+<div class="card"><div class="card-head">🔄 Transfer Recommendations</div><div id="xferRecContainer"><div class="empty-state"><h3>No team selected</h3><p>Select a team to get AI transfer recommendations.</p></div></div></div>
+<div class="card"><div class="card-head">📋 Recent Transfers</div><div id="transfersContainer"><div class="empty-state"><h3>No team selected</h3></div></div></div>
+</div>
+<div class="page" id="page-injuries"><div class="card"><div class="card-head">🚑 Injury & Status Report</div><div id="injuryContainer"><div class="loading"><div class="spinner"></div><div>Loading injuries...</div></div></div></div></div>
 <div class="page" id="page-predictions"><div class="card"><div class="card-head">🎯 Score Predictions</div><div id="predictionsContainer"><div class="loading"><div class="spinner"></div><div>Loading predictions...</div></div></div></div></div>
-<div class="page" id="page-players"><div class="card"><div class="card-head">📊 Top Players by Points</div><div class="pos-filter" id="posFilter"><button class="active" data-pos="ALL">All</button><button data-pos="GKP">GK</button><button data-pos="DEF">DEF</button><button data-pos="MID">MID</button><button data-pos="FWD">FWD</button></div><table class="tbl"><thead><tr><th>Player</th><th>Team</th><th>£</th><th>Pts</th><th>Form</th><th>Selected%</th></tr></thead><tbody id="playersBody"><tr><td colspan="6" class="loading">Loading players...</td></tr></tbody></table></div></div>
+<div class="page" id="page-players"><div class="card"><div class="card-head">📊 Top Players by Points</div><div class="pos-filter" id="posFilter"><button class="active" data-pos="ALL">All</button><button data-pos="GKP">GK</button><button data-pos="DEF">DEF</button><button data-pos="MID">MID</button><button data-pos="FWD">FWD</button></div><table class="tbl"><thead><tr><th>Player</th><th>Team</th><th>£</th><th>Pts</th><th>Form</th><th>Selected %</th></tr></thead><tbody id="playersBody"><tr><td colspan="6" class="loading">Loading players...</td></tr></tbody></table></div></div>
 <div class="page" id="page-fixtures"><div class="card"><div class="card-head">📅 Upcoming Fixtures</div><div id="fixturesContainer"><div class="loading"><div class="spinner"></div><div>Loading fixtures...</div></div></div></div></div>
 <div class="page" id="page-league"><div class="card"><div class="card-head">🏆 ZPL League Standings</div><table class="league-tbl"><thead><tr><th>#</th><th>Team</th><th>Manager</th><th>Pts</th></tr></thead><tbody id="leagueBody"><tr><td colspan="4" class="loading">Loading standings...</td></tr></tbody></table></div></div>
 </main>
-<footer>Fantasy Hub &middot; Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a> &middot; Data from <a href="https://fantasy.premierleague.com/">Fantasy Premier League</a></footer>
+<footer>Fantasy Hub &middot; Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a> &middot; Data from <a href="https://fantasy.premierleague.com/">Fantasy Premier League</a><div class="refresh-note" id="refreshNote"></div></footer>
 <script>
-const API_BASE='https://fantasy-hub.lianza-moses123.workers.dev/api';
+const API_BASE='/api';
 const ZPL_LEAGUE_ID=45149;
 let bootstrap=null,currentTeamId=null,currentPosFilter='ALL',customTeams=[];
 
@@ -177,63 +181,28 @@ try{
 bootstrap=await fplFetch('/bootstrap-static/');
 const gw=bootstrap.events?.find(e=>e.is_current)||bootstrap.events?.find(e=>e.is_next);
 if(gw)document.getElementById('gwChip').innerHTML='<strong>GW'+gw.id+'</strong> '+(gw.is_current?'(Live)':gw.deadline_time?.substring(0,10)||'');
-loadPlayers();loadFixtures();loadPredictions();loadZPLTeams();
-}catch(e){console.error('Init error:',e);document.getElementById('pitchContainer').innerHTML='<div class="empty-state"><h3>Connection Error</h3><p>Could not connect to FPL API. Check Worker URL.</p></div>';}
+loadPlayers();loadAllInjuries();loadFixtures();loadPredictions();loadZPLTeams();
+}catch(e){console.error('Init error:',e);document.getElementById('pitchContainer').innerHTML='<div class="empty-state"><h3>Connection Error</h3><p>Could not connect to FPL API.</p></div>';}
 }
 
 async function loadZPLTeams(){
 try{
-// Fetch page 1 first
 const data=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/');
 let allEntries=data.standings?.results||[];
 let allNewEntries=data.new_entries?.results||[];
-
-// Fetch remaining pages for standings (if season started)
 let page=2;
-while(data.standings?.has_next&&page<=10){
-try{
-const pageData=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/?page='+page);
-allEntries=allEntries.concat(pageData.standings?.results||[]);
-data.standings.has_next=pageData.standings?.has_next||false;
-page++;
-}catch(e){break;}
-}
-
-// Fetch remaining pages for new entries (if season not started)
-if(allEntries.length===0){
-page=2;
-while(data.new_entries?.has_next&&page<=10){
-try{
-const pageData=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/?page='+page);
-allNewEntries=allNewEntries.concat(pageData.new_entries?.results||[]);
-data.new_entries.has_next=pageData.new_entries?.has_next||false;
-page++;
-}catch(e){break;}
-}
-}
-
+while(data.standings?.has_next&&page<=10){try{const pd=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/?page='+page);allEntries=allEntries.concat(pd.standings?.results||[]);data.standings.has_next=pd.standings?.has_next||false;page++;}catch(e){break;}}
+if(allEntries.length===0){page=2;while(data.new_entries?.has_next&&page<=10){try{const pd=await fplFetch('/leagues-classic/'+ZPL_LEAGUE_ID+'/standings/?page='+page);allNewEntries=allNewEntries.concat(pd.new_entries?.results||[]);data.new_entries.has_next=pd.new_entries?.has_next||false;page++;}catch(e){break;}}}
 customTeams=JSON.parse(localStorage.getItem('fantasyhub_custom_teams')||'[]');
 const select=document.getElementById('teamSelect');
 select.innerHTML='<option value="">-- Select a team --</option>';
-
-if(allEntries.length>0){
-allEntries.forEach(e=>{const o=document.createElement('option');o.value=e.entry;o.textContent=e.entry_name+' ('+e.player_first_name+' '+e.player_last_name+')';select.appendChild(o);});
-renderLeague(allEntries);
-}else if(allNewEntries.length>0){
-allNewEntries.forEach(e=>{const o=document.createElement('option');o.value=e.entry;o.textContent=e.entry_name+' ('+e.player_first_name+' '+e.player_last_name+')';select.appendChild(o);});
-renderLeagueNew(allNewEntries);
-}
-
+if(allEntries.length>0){allEntries.forEach(e=>{const o=document.createElement('option');o.value=e.entry;o.textContent=e.entry_name+' ('+e.player_first_name+' '+e.player_last_name+')';select.appendChild(o);});renderLeague(allEntries);}
+else if(allNewEntries.length>0){allNewEntries.forEach(e=>{const o=document.createElement('option');o.value=e.entry;o.textContent=e.entry_name+' ('+e.player_first_name+' '+e.player_last_name+')';select.appendChild(o);});renderLeagueNew(allNewEntries);}
 customTeams.forEach(t=>{const o=document.createElement('option');o.value=t.id;o.textContent=t.name+' (Custom)';select.appendChild(o);});
-
 const saved=localStorage.getItem('fantasyhub_selected_team');
 if(saved){select.value=saved;if(select.value)loadTeam(parseInt(saved));}
-
 console.log('[ZPL] Loaded '+(allEntries.length||allNewEntries.length)+' teams');
-}catch(e){
-console.error('Failed to load ZPL teams:',e);
-document.getElementById('leagueBody').innerHTML='<tr><td colspan="4" style="color:var(--red)">Error loading teams: '+e.message+'</td></tr>';
-}
+}catch(e){console.error('Failed to load ZPL teams:',e);document.getElementById('leagueBody').innerHTML='<tr><td colspan="4" style="color:var(--red)">Error: '+e.message+'</td></tr>';}
 }
 
 function addCustomTeam(){
@@ -245,7 +214,8 @@ input.value='';
 customTeams.push({id:id,name:'Custom '+id});
 localStorage.setItem('fantasyhub_custom_teams',JSON.stringify(customTeams));
 const select=document.getElementById('teamSelect');
-const o=document.createElement('option');o.value=id;o.textContent='Custom '+id+' (Custom)';select.appendChild(o);select.value=id;
+const o=document.createElement('option');o.value=id;o.textContent='Custom '+id+' (Custom)';select.appendChild(o);
+select.value=id;
 loadTeam(id);
 }
 
@@ -264,10 +234,10 @@ document.getElementById('statTV').textContent='£'+(entry.value?(entry.value/10)
 const gw=bootstrap?.events?.find(e=>e.is_current)||bootstrap?.events?.find(e=>e.is_next);
 const gwId=gw?gw.id:1;
 let picksData=null;
-try{picksData=await fplFetch('/entry/'+teamId+'/event/'+gwId+'/picks/');renderSquad(picksData);renderInjuries(picksData);}catch(pe){document.getElementById('pitchContainer').innerHTML='<div class="empty-state"><h3>Squad not available yet</h3><p>Picks will be visible after GW'+gwId+' deadline.</p></div>';document.getElementById('injuryContainer').innerHTML='<div class="empty-state"><h3>No data yet</h3><p>Injury report available after GW'+gwId+' deadline.</p></div>';}
+try{picksData=await fplFetch('/entry/'+teamId+'/event/'+gwId+'/picks/');renderSquad(picksData);renderInjuries(picksData);}catch(pe){document.getElementById('pitchContainer').innerHTML='<div class="empty-state"><h3>Squad not available yet</h3><p>Picks will be visible after GW'+gwId+' deadline.</p></div>';loadAllInjuries();}
 try{const transfers=await fplFetch('/entry/'+teamId+'/transfers/');renderTransfers(transfers);}catch(te){document.getElementById('transfersContainer').innerHTML='<div class="empty-state"><h3>No transfers yet</h3></div>';}
 try{const history=await fplFetch('/entry/'+teamId+'/history/');const c=history.current?.[history.current.length-1];if(c)document.getElementById('statTF').textContent=c.event_transfers||1;}catch(he){}
-if(picksData)generateTransferRecs(picksData);else generateGeneralRecs();
+if(picksData)generateTransferRecs(picksData);
 }catch(e){console.error('Load team error:',e);document.getElementById('pitchContainer').innerHTML='<div class="empty-state"><h3>Failed to load team</h3><p>'+e.message+'</p></div>';}
 }
 
@@ -295,8 +265,29 @@ document.getElementById('pitchContainer').innerHTML=h;
 
 function statusClass(s){if(s==='a')return'da';if(s==='i')return'di';if(s==='d')return'dd';if(s==='s')return'ds';return'du';}
 
+async function loadAllInjuries(){
+if(!bootstrap){return;}
+const elements=bootstrap.elements||[];
+const teams=bootstrap.teams||[];
+const injured=elements.filter(p=>p.status==='i');
+const doubtful=elements.filter(p=>p.status==='d'||p.status==='s');
+let h='';
+if(injured.length>0){
+h+='<div style="margin-bottom:16px"><div style="font-size:12px;text-transform:uppercase;color:var(--red);font-family:DM Mono,monospace;margin-bottom:8px">🚫 Injured ('+injured.length+')</div>';
+injured.forEach(p=>{const team=teams.find(t=>t.id===p.team);const pos=p.element_type===1?'GK':p.element_type===2?'DEF':p.element_type===3?'MID':'FWD';h+='<div class="prow"><span class="dot di"></span><div class="prow-info"><div class="prow-name">'+p.web_name+' <span style="font-size:10px;color:var(--muted);font-weight:400">'+(team?team.short_name:'')+' • '+pos+'</span></div><div class="prow-sub">'+(p.news||'Injured')+(p.chance_of_playing_this_round?' • '+p.chance_of_playing_this_round+'% chance':'')+'</div>'+(p.news?'<span class="news-tag">'+p.news.substring(0,100)+'</span>':'')+'</div><div class="prow-price">£'+(p.now_cost/10).toFixed(1)+'m</div></div>';});
+h+='</div>';
+}
+if(doubtful.length>0){
+h+='<div style="margin-bottom:16px"><div style="font-size:12px;text-transform:uppercase;color:var(--orange);font-family:DM Mono,monospace;margin-bottom:8px">⚠️ Doubtful ('+doubtful.length+')</div>';
+doubtful.forEach(p=>{const team=teams.find(t=>t.id===p.team);const pos=p.element_type===1?'GK':p.element_type===2?'DEF':p.element_type===3?'MID':'FWD';h+='<div class="prow"><span class="dot dd"></span><div class="prow-info"><div class="prow-name">'+p.web_name+' <span style="font-size:10px;color:var(--muted);font-weight:400">'+(team?team.short_name:'')+' • '+pos+'</span></div><div class="prow-sub">'+(p.news||'Doubtful')+(p.chance_of_playing_this_round?' • '+p.chance_of_playing_this_round+'% chance':'')+'</div>'+(p.news?'<span class="news-tag">'+p.news.substring(0,100)+'</span>':'')+'</div><div class="prow-price">£'+(p.now_cost/10).toFixed(1)+'m</div></div>';});
+h+='</div>';
+}
+if(injured.length===0&&doubtful.length===0){h='<div class="empty-state"><h3>✅ All Clear</h3><p>No injuries or doubts reported across the Premier League.</p></div>';}
+document.getElementById('injuryContainer').innerHTML=h;
+}
+
 function renderInjuries(picksData){
-if(!picksData||!picksData.picks||!bootstrap){document.getElementById('injuryContainer').innerHTML='<div class="empty-state"><h3>No data</h3></div>';return;}
+if(!picksData||!picksData.picks||!bootstrap){loadAllInjuries();return;}
 const elements=bootstrap.elements||[],picks=picksData.picks;
 const players=picks.map(p=>{const el=elements.find(e=>e.id===p.element);return el?{...el,is_starter:p.position<=11}:null;}).filter(Boolean);
 const injured=players.filter(p=>p.status==='i');
@@ -305,21 +296,20 @@ const safe=players.filter(p=>p.status==='a'||p.status==='u'||!p.status);
 let h='';
 if(injured.length>0){h+='<div style="margin-bottom:16px"><div style="font-size:12px;text-transform:uppercase;color:var(--red);font-family:DM Mono,monospace;margin-bottom:8px">🚫 Injured ('+injured.length+')</div>';injured.forEach(p=>{h+='<div class="prow"><span class="dot di"></span><div class="prow-info"><div class="prow-name">'+p.web_name+'</div><div class="prow-sub">'+(p.news||'Injured')+(p.chance_of_playing_this_round?' • '+p.chance_of_playing_this_round+'%':'')+'</div>'+(p.news?'<span class="news-tag">'+p.news.substring(0,80)+'</span>':'')+'</div><div class="prow-price">£'+(p.now_cost/10).toFixed(1)+'m</div></div>';});h+='</div>';}
 if(doubtful.length>0){h+='<div style="margin-bottom:16px"><div style="font-size:12px;text-transform:uppercase;color:var(--orange);font-family:DM Mono,monospace;margin-bottom:8px">⚠️ Doubtful ('+doubtful.length+')</div>';doubtful.forEach(p=>{h+='<div class="prow"><span class="dot dd"></span><div class="prow-info"><div class="prow-name">'+p.web_name+'</div><div class="prow-sub">'+(p.news||'Doubtful')+(p.chance_of_playing_this_round?' • '+p.chance_of_playing_this_round+'%':'')+'</div>'+(p.news?'<span class="news-tag">'+p.news.substring(0,80)+'</span>':'')+'</div><div class="prow-price">£'+(p.now_cost/10).toFixed(1)+'m</div></div>';});h+='</div>';}
-if(safe.length>0){h+='<div><div style="font-size:12px;text-transform:uppercase;color:var(--green);font-family:DM Mono,monospace;margin-bottom:8px">✅ Available ('+safe.length+')</div>';safe.forEach(p=>{h+='<div class="prow"><span class="dot da"></span><div class="prow-info"><div class="prow-name">'+p.web_name+'</div><div class="prow-sub">'+(p.team?bootstrap.teams.find(t=>t.id===p.team)?.short_name:'')+' • '+(p.element_type===1?'GK':p.element_type===2?'DEF':p.element_type===3?'MID':'FWD')+'</div></div><div class="prow-price">£'+(p.now_cost/10).toFixed(1)+'m</div></div>';});h+='</div>';}
-if(injured.length===0&&doubtful.length===0){h='<div class="empty-state"><h3>✅ All Clear</h3><p>No injuries or doubts in your squad. All players available!</p></div>';}
+if(safe.length>0){h+='<div><div style="font-size:12px;text-transform:uppercase;color:var(--green);font-family:DM Mono,monospace;margin-bottom:8px">✅ Available ('+safe.length+')</div>';safe.forEach(p=>{const team=bootstrap.teams.find(t=>t.id===p.team);h+='<div class="prow"><span class="dot da"></span><div class="prow-info"><div class="prow-name">'+p.web_name+'</div><div class="prow-sub">'+(team?team.short_name:'')+' • '+(p.element_type===1?'GK':p.element_type===2?'DEF':p.element_type===3?'MID':'FWD')+'</div></div><div class="prow-price">£'+(p.now_cost/10).toFixed(1)+'m</div></div>';});h+='</div>';}
+if(injured.length===0&&doubtful.length===0){h='<div class="empty-state"><h3>✅ All Clear</h3><p>No injuries or doubts in your squad!</p></div>';}
 document.getElementById('injuryContainer').innerHTML=h;
 }
 
 function generateTransferRecs(picksData){
-if(!picksData||!picksData.picks||!bootstrap){generateGeneralRecs();return;}
+if(!picksData||!picksData.picks||!bootstrap){document.getElementById('xferRecContainer').innerHTML='<div class="empty-state"><h3>No data</h3></div>';return;}
 const elements=bootstrap.elements||[],teams=bootstrap.teams||[],picks=picksData.picks;
 const myPlayers=picks.map(p=>{const el=elements.find(e=>e.id===p.element);return el?{...el,is_starter:p.position<=11}:null;}).filter(Boolean);
 const myIds=new Set(myPlayers.map(p=>p.id));
 const worstStarter=myPlayers.filter(p=>p.is_starter).sort((a,b)=>(a.total_points||0)-(b.total_points||0))[0];
-if(!worstStarter){generateGeneralRecs();return;}
-const bestReplacement=elements.filter(p=>!myIds.has(p.id)&&p.element_type===worstStarter.element_type&&p.status==='a').sort((a,b)=>(b.total_points||0)-(a.total_points||0))[0];
+const bestReplacement=[...elements].filter(p=>!myIds.has(p.id)&&p.element_type===worstStarter?.element_type).sort((a,b)=>(b.total_points||0)-(a.total_points||0))[0];
 let h='';
-if(bestReplacement){
+if(worstStarter&&bestReplacement){
 const wp=worstStarter.total_points||0,bp=bestReplacement.total_points||0;
 const wf=parseFloat(worstStarter.form)||0,bf=parseFloat(bestReplacement.form)||0;
 h+='<div class="xfer-grid"><div><div class="xfer-head">⬅ Transfer Out</div>';
@@ -327,22 +317,13 @@ h+='<div class="xfer-card out"><div class="xfer-info"><div class="xfer-name">'+w
 h+='</div><div><div class="xfer-head">➡ Transfer In</div>';
 h+='<div class="xfer-card in"><div class="xfer-info"><div class="xfer-name">'+bestReplacement.web_name+'</div><div class="xfer-sub">'+(teams.find(t=>t.id===bestReplacement.team)?.short_name)+' • £'+(bestReplacement.now_cost/10).toFixed(1)+'m</div><div class="xfer-why">Best replacement • '+bf+' form • '+bp+' pts</div></div></div>';
 h+='</div></div>';
-h+='<div style="margin-top:14px;padding:12px;background:var(--bg3);border-radius:8px;font-size:12px;color:var(--muted)">💡 <strong style="color:var(--accent2)">AI Recommendation:</strong> Swapping '+worstStarter.web_name+' for '+bestReplacement.web_name+' could gain '+(bp-wp)+' points based on current form.</div>';
-}else{h='<div class="empty-state"><h3>No recommendations</h3><p>Unable to generate suggestions.</p></div>';}
-document.getElementById('xferRecContainer').innerHTML=h;
-}
-
-function generateGeneralRecs(){
-if(!bootstrap){document.getElementById('xferRecContainer').innerHTML='<div class="empty-state"><h3>No data</h3></div>';return;}
-const elements=bootstrap.elements||[],teams=bootstrap.teams||[];
-const top=elements.filter(p=>p.status==='a').sort((a,b)=>(b.total_points||0)-(a.total_points||0)).slice(0,5);
-let h='<div style="margin-bottom:14px;font-size:12px;color:var(--muted)">⏳ Season hasn\'t started — no picks yet. Here are the top available players to consider:</div>';
-top.forEach(p=>{const team=teams.find(t=>t.id===p.team);const pc=p.element_type===1?'GKP':p.element_type===2?'DEF':p.element_type===3?'MID':'FWD';h+='<div class="xfer-card in"><div class="xfer-info"><div class="xfer-name">'+p.web_name+'</div><div class="xfer-sub">'+(team?team.short_name:'')+' • '+(pc.replace('P',''))+' • £'+(p.now_cost/10).toFixed(1)+'m</div><div class="xfer-why">'+(p.total_points||0)+' pts • '+p.form+' form • '+p.selected_by_percent+'% selected</div></div></div>';});
+h+='<div style="margin-top:14px;padding:12px;background:var(--bg3);border-radius:8px;font-size:12px;color:var(--muted)">💡 <strong style="color:var(--accent2)">AI Recommendation:</strong> Swapping '+worstStarter.web_name+' for '+bestReplacement.web_name+' could gain '+(bp-wp)+' points. Check price difference before transferring.</div>';
+}else{h='<div class="empty-state"><h3>No recommendations</h3><p>Unable to generate transfer suggestions.</p></div>';}
 document.getElementById('xferRecContainer').innerHTML=h;
 }
 
 function renderTransfers(transfers){
-if(!transfers||transfers.length===0){document.getElementById('transfersContainer').innerHTML='<div class="empty-state"><h3>No transfers yet</h3><p>Transfers will appear here once made.</p></div>';return;}
+if(!transfers||transfers.length===0){document.getElementById('transfersContainer').innerHTML='<div class="empty-state"><h3>No transfers yet</h3></div>';return;}
 if(!bootstrap)return;
 const elements=bootstrap.elements||[],recent=transfers.slice(-10).reverse();
 let oh='<div class="xfer-grid"><div><div class="xfer-head">Out</div>',ih='<div><div class="xfer-head">In</div>';
@@ -369,29 +350,31 @@ if(!bootstrap)return;
 const gw=bootstrap.events?.find(e=>e.is_current)||bootstrap.events?.find(e=>e.is_next);
 if(!gw){document.getElementById('fixturesContainer').innerHTML='<div class="empty-state"><h3>No fixtures</h3></div>';return;}
 try{
-const data=await fplFetch('/fixtures/?event='+gw.id);
-if(!data||data.length===0){document.getElementById('fixturesContainer').innerHTML='<div class="empty-state"><h3>No fixtures for GW'+gw.id+'</h3><p>Fixtures will appear when released.</p></div>';return;}
+const live=await fplFetch('/event/'+gw.id+'/live/');
+const fixtures=live.fixtures||[];
+if(fixtures.length===0){document.getElementById('fixturesContainer').innerHTML='<div class="empty-state"><h3>No fixtures for GW'+gw.id+'</h3><p>Fixtures will appear when released.</p></div>';return;}
 const teams=bootstrap.teams||[];
-document.getElementById('fixturesContainer').innerHTML=data.map(f=>{const home=teams.find(t=>t.id===f.team_h),away=teams.find(t=>t.id===f.team_a),score=f.started?(f.team_h_score||0)+' - '+(f.team_a_score||0):'vs',time=f.kickoff_time?new Date(f.kickoff_time).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'TBD';return'<div class="fix-card"><div class="fix-team"><div class="fix-tname">'+(home?home.name:'TBD')+'</div><div class="fix-short">'+(home?home.short_name:'')+'</div></div><div class="fix-mid"><div class="fix-score">'+score+'</div><div class="fix-time">'+time+'</div></div><div class="fix-team"><div class="fix-tname">'+(away?away.name:'TBD')+'</div><div class="fix-short">'+(away?away.short_name:'')+'</div></div></div>';}).join('');
-}catch(e){document.getElementById('fixturesContainer').innerHTML='<div class="empty-state"><h3>Fixtures unavailable</h3><p>Will appear when GW'+gw.id+' fixtures are released.</p></div>';}
+document.getElementById('fixturesContainer').innerHTML=fixtures.map(f=>{const home=teams.find(t=>t.id===f.team_h),away=teams.find(t=>t.id===f.team_a),score=f.started?(f.team_h_score||0)+' - '+(f.team_a_score||0):'vs',time=f.kickoff_time?new Date(f.kickoff_time).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'TBD';return'<div class="fix-card"><div class="fix-team"><div class="fix-tname">'+(home?home.name:'TBD')+'</div><div class="fix-short">'+(home?home.short_name:'')+'</div></div><div class="fix-mid"><div class="fix-score">'+score+'</div><div class="fix-time">'+time+'</div></div><div class="fix-team"><div class="fix-tname">'+(away?away.name:'TBD')+'</div><div class="fix-short">'+(away?away.short_name:'')+'</div></div></div>';}).join('');
+}catch(e){document.getElementById('fixturesContainer').innerHTML='<div class="empty-state"><h3>Fixtures unavailable</h3></div>';}
 }
 
 async function loadPredictions(){
-if(!bootstrap){document.getElementById('predictionsContainer').innerHTML='<div class="empty-state"><h3>No data</h3></div>';return;}
+if(!bootstrap)return;
 const gw=bootstrap.events?.find(e=>e.is_current)||bootstrap.events?.find(e=>e.is_next);
 if(!gw){document.getElementById('predictionsContainer').innerHTML='<div class="empty-state"><h3>No predictions</h3></div>';return;}
 try{
-const data=await fplFetch('/fixtures/?event='+gw.id);
-if(!data||data.length===0){document.getElementById('predictionsContainer').innerHTML='<div class="empty-state"><h3>No fixtures for GW'+gw.id+'</h3><p>Predictions will appear when fixtures are released.</p></div>';return;}
+const live=await fplFetch('/event/'+gw.id+'/live/');
+const fixtures=live.fixtures||[];
 const teams=bootstrap.teams||[];
 const elements=bootstrap.elements||[];
+if(fixtures.length===0){document.getElementById('predictionsContainer').innerHTML='<div class="empty-state"><h3>No fixtures for GW'+gw.id+'</h3><p>Predictions will appear when fixtures are released.</p></div>';return;}
 let h='';
-data.forEach(f=>{
+fixtures.forEach(f=>{
 const home=teams.find(t=>t.id===f.team_h),away=teams.find(t=>t.id===f.team_a);
 const homeStr=elements.filter(e=>e.team===f.team_h).reduce((s,p)=>s+(p.total_points||0),0);
 const awayStr=elements.filter(e=>e.team===f.team_a).reduce((s,p)=>s+(p.total_points||0),0);
 const total=homeStr+awayStr||1;
-const hPct=Math.round(homeStr/total*100),aPct=Math.round(awayStr/total*100),dPct=Math.max(0,100-hPct-aPct);
+const hPct=Math.round(homeStr/total*100),aPct=Math.round(awayStr/total*100),dPct=100-hPct-aPct;
 const hWin=hPct>aPct&&hPct>dPct,aWin=aPct>hPct&&aPct>dPct;
 let predScore=hWin?'2-1':aWin?'1-2':dPct>40?'1-1':hPct>aPct?'2-1':'1-2';
 const time=f.kickoff_time?new Date(f.kickoff_time).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'TBD';
@@ -407,21 +390,19 @@ function renderLeagueNew(t){document.getElementById('leagueBody').innerHTML=t.ma
 document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));tab.classList.add('active');document.getElementById('page-'+tab.dataset.tab).classList.add('active');}));
 document.getElementById('teamSelect').addEventListener('change',function(){if(this.value)loadTeam(parseInt(this.value));});
 document.querySelectorAll('.pos-filter button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.pos-filter button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');currentPosFilter=btn.dataset.pos;renderPlayers();}));
-// Auto-refresh predictions and fixtures every 60 seconds
+
 setInterval(async function(){
 if(bootstrap){
 const gw=bootstrap.events?.find(e=>e.is_current)||bootstrap.events?.find(e=>e.is_next);
 if(gw&&gw.is_current){
-console.log('[Auto-refresh] Updating predictions and fixtures...');
-loadPredictions();
-loadFixtures();
-if(currentTeamId){
-loadTeam(currentTeamId);
-}
+console.log('[Auto-refresh] Updating...');
+loadPredictions();loadFixtures();
+if(currentTeamId)loadTeam(currentTeamId);
 }
 }
 },60000);
-  init();
+
+init();
 </script>
 </body>
 </html>
